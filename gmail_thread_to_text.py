@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "google-api-python-client",
+#   "google-auth-oauthlib",
+# ]
+# ///
 """Fetch Gmail thread(s) and export plain-text transcript.
 
 Requires OAuth Desktop app credentials.json.

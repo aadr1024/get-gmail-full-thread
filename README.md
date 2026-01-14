@@ -1,18 +1,20 @@
 Gmail full thread to plain text
 
-Setup:
+Setup (fast path):
 1) Google Cloud Console -> enable Gmail API
 2) Create OAuth Client (Desktop app)
-3) Download credentials.json into this folder
-4) Install deps:
-   uv pip install -r requirements.txt
+3) Download OAuth JSON to this folder
+4) Easiest: copy+edit template
+   cp credentials.sample.json credentials.json
+   # then paste your real values into credentials.json
+5) No pip install needed: dependencies are in-file and uv handles them.
 
 Usage:
 - By message ID (from Gmail URL):
-  python gmail_thread_to_text.py --message-id FMfcgzQdzcrhbbpvkRHTbGBCLpftmKTq --out thread.txt
+  uv run gmail_thread_to_text.py --message-id FMfcgzQdzcrhbbpvkRHTbGBCLpftmKTq --out thread.txt
 
 - By search query (first match):
-  python gmail_thread_to_text.py --query "ryan" --out thread.txt
+  uv run gmail_thread_to_text.py --query "ryan" --out thread.txt
 
 Options:
 - --thread-id <id>
@@ -24,6 +26,11 @@ Notes:
 
 Security:
 - credentials.json and token.json are gitignored.
+
+OAuth testing mode fix (Error 403: access_denied):
+- In Google Cloud Console -> OAuth consent screen -> Test users
+- Add the Gmail account you are logging in with (e.g., aadityalr123@gmail.com)
+- Save, then re-run the command.
 
 License:
 - MIT (see LICENSE).
