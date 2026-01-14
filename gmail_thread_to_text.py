@@ -21,6 +21,7 @@ from typing import Dict, List, Optional
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
@@ -67,12 +68,27 @@ def _format_recipients(value: str) -> str:
     return ", ".join([f"{name} <{addr}>" if name else addr for name, addr in addrs])
 
 
-def _resolve_thread_id(service, message_id: Optional[str], thread_id: Optional[str], query: Optional[str], max_results: int) -> str:
+def _resolve_thread_id(
+    service,
+    message_id: Optional[str],
+    thread_id: Optional[str],
+    query: Optional[str],
+    max_results: int,
+) -> str:
     if thread_id:
         return thread_id
     if message_id:
-        msg = service.users().messages().get(userId="me", id=message_id, format="metadata").execute()
-        return msg["threadId"]
+        try:
+            msg = service.users().messages().get(userId="me", id=message_id, format="metadata").execute()
+            return msg["threadId"]
+        except HttpError as exc:
+            if getattr(exc, "resp", None) is not None and exc.resp.status == 400:
+                raise SystemExit(
+                    "Invalid message id for Gmail API. If this came from a Gmail web URL, "
+                    "use --query with subject/from, or open the message in Gmail -> Show original "
+                    "and use the Message-ID header with: --query \"rfc822msgid:<...>\"."
+                ) from exc
+            raise
     if query:
         resp = service.users().threads().list(userId="me", q=query, maxResults=max_results).execute()
         threads = resp.get("threads", [])
@@ -85,6 +101,7 @@ def _resolve_thread_id(service, message_id: Optional[str], thread_id: Optional[s
 def main():
     ap = argparse.ArgumentParser(description="Export Gmail thread to plain text")
     ap.add_argument("--message-id", help="Gmail message ID (from URL)")
+    ap.add_argument("--gmail-url", help="Gmail web URL; script will extract the last path segment")
     ap.add_argument("--thread-id", help="Gmail thread ID")
     ap.add_argument("--query", help="Gmail search query (uses first match)")
     ap.add_argument("--max", type=int, default=1, help="Max threads to search (default 1)")
@@ -93,7 +110,10 @@ def main():
     args = ap.parse_args()
 
     service = _get_service()
-    thread_id = _resolve_thread_id(service, args.message_id, args.thread_id, args.query, args.max)
+    message_id = args.message_id
+    if not message_id and args.gmail_url:
+        message_id = args.gmail_url.rstrip("/").split("/")[-1]
+    thread_id = _resolve_thread_id(service, message_id, args.thread_id, args.query, args.max)
 
     thread = service.users().threads().get(userId="me", id=thread_id, format="full").execute()
 

@@ -13,6 +13,9 @@ Usage:
 - By message ID (from Gmail URL):
   uv run gmail_thread_to_text.py --message-id FMfcgzQdzcrhbbpvkRHTbGBCLpftmKTq --out thread.txt
 
+- By Gmail URL:
+  uv run gmail_thread_to_text.py --gmail-url "https://mail.google.com/mail/u/0/#search/ryan/FMfcgzQdzcrhbbpvkRHTbGBCLpftmKTq" --out thread.txt
+
 - By search query (first match):
   uv run gmail_thread_to_text.py --query "ryan" --out thread.txt
 
@@ -23,12 +26,15 @@ Options:
 Notes:
 - First run opens a browser to authenticate; token.json saved.
 - Output is plain text with message separators.
+- If you get "Invalid message id", use --query with subject/from or use Gmail "Show original" and pass:
+  --query "rfc822msgid:<Message-ID>"
 
 Security:
 - credentials.json and token.json are gitignored.
 
 OAuth testing mode fix (Error 403: access_denied):
 - In Google Cloud Console -> OAuth consent screen -> Test users
+- If the console redirects, open: https://console.cloud.google.com/auth/overview?project=<YOUR_PROJECT_ID>
 - Add the Gmail account you are logging in with (e.g., aadityalr123@gmail.com)
 - Save, then re-run the command.
 
