@@ -1,0 +1,11 @@
+# credentials
+credentials.json
+token.json
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# mac
+.DS_Store
