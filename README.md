@@ -19,15 +19,21 @@ Usage:
 - By search query (first match):
   uv run gmail_thread_to_text.py --query "ryan" --out thread.txt
 
+- By RFC822 Message-ID (from “Show original”):
+  uv run gmail_thread_to_text.py --query "rfc822msgid:<Message-ID>" --out thread.txt
+
 Options:
 - --thread-id <id>
 - --include-html-fallback (if no text/plain part)
+- --all-threads (dump up to --max threads for a query into one file)
 
 Notes:
 - First run opens a browser to authenticate; token.json saved.
 - Output is plain text with message separators.
 - If you get "Invalid message id", use --query with subject/from or use Gmail "Show original" and pass:
   --query "rfc822msgid:<Message-ID>"
+- If you used a subject/from query and got only one message but expect more, add:
+  --all-threads --max 10
 
 Security:
 - credentials.json and token.json are gitignored.

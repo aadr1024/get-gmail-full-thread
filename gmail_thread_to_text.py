@@ -68,19 +68,20 @@ def _format_recipients(value: str) -> str:
     return ", ".join([f"{name} <{addr}>" if name else addr for name, addr in addrs])
 
 
-def _resolve_thread_id(
+def _resolve_thread_ids(
     service,
     message_id: Optional[str],
     thread_id: Optional[str],
     query: Optional[str],
     max_results: int,
+    all_threads: bool,
 ) -> str:
     if thread_id:
-        return thread_id
+        return [thread_id]
     if message_id:
         try:
             msg = service.users().messages().get(userId="me", id=message_id, format="metadata").execute()
-            return msg["threadId"]
+            return [msg["threadId"]]
         except HttpError as exc:
             if getattr(exc, "resp", None) is not None and exc.resp.status == 400:
                 raise SystemExit(
@@ -94,7 +95,9 @@ def _resolve_thread_id(
         threads = resp.get("threads", [])
         if not threads:
             raise SystemExit("No threads found for query")
-        return threads[0]["id"]
+        if all_threads:
+            return [t["id"] for t in threads]
+        return [threads[0]["id"]]
     raise SystemExit("Need --thread-id, --message-id, or --query")
 
 
@@ -107,33 +110,38 @@ def main():
     ap.add_argument("--max", type=int, default=1, help="Max threads to search (default 1)")
     ap.add_argument("--out", default="thread.txt", help="Output file")
     ap.add_argument("--include-html-fallback", action="store_true", help="Fallback to text from HTML when text/plain missing")
+    ap.add_argument("--all-threads", action="store_true", help="Dump up to --max threads for a query (combined output)")
     args = ap.parse_args()
 
     service = _get_service()
     message_id = args.message_id
     if not message_id and args.gmail_url:
         message_id = args.gmail_url.rstrip("/").split("/")[-1]
-    thread_id = _resolve_thread_id(service, message_id, args.thread_id, args.query, args.max)
-
-    thread = service.users().threads().get(userId="me", id=thread_id, format="full").execute()
+    thread_ids = _resolve_thread_ids(service, message_id, args.thread_id, args.query, args.max, args.all_threads)
 
     out_lines: List[str] = []
-    for msg in thread.get("messages", []):
-        headers = _header_map(msg["payload"]["headers"])
-        out_lines.append("=" * 72)
-        out_lines.append(f"From: {_format_recipients(headers.get('from',''))}")
-        out_lines.append(f"To: {_format_recipients(headers.get('to',''))}")
-        out_lines.append(f"Date: {headers.get('date','')}")
-        out_lines.append(f"Subject: {headers.get('subject','')}")
+    for idx, thread_id in enumerate(thread_ids, start=1):
+        thread = service.users().threads().get(userId="me", id=thread_id, format="full").execute()
+        out_lines.append("#" * 72)
+        out_lines.append(f"THREAD {idx} / {len(thread_ids)}  id={thread_id}")
+        out_lines.append("#" * 72)
+        for msg in thread.get("messages", []):
+            headers = _header_map(msg["payload"]["headers"])
+            out_lines.append("=" * 72)
+            out_lines.append(f"From: {_format_recipients(headers.get('from',''))}")
+            out_lines.append(f"To: {_format_recipients(headers.get('to',''))}")
+            out_lines.append(f"Date: {headers.get('date','')}")
+            out_lines.append(f"Subject: {headers.get('subject','')}")
+            out_lines.append("")
+            body = _extract_text(msg["payload"]).strip()
+            if not body and args.include_html_fallback:
+                # naive fallback: decode first text/html part
+                for part in msg["payload"].get("parts", []) or []:
+                    if part.get("mimeType") == "text/html":
+                        body = _decode_body(part).strip()
+                        break
+            out_lines.append(body or "[no text/plain body]")
         out_lines.append("")
-        body = _extract_text(msg["payload"]).strip()
-        if not body and args.include_html_fallback:
-            # naive fallback: decode first text/html part
-            for part in msg["payload"].get("parts", []) or []:
-                if part.get("mimeType") == "text/html":
-                    body = _decode_body(part).strip()
-                    break
-        out_lines.append(body or "[no text/plain body]")
 
     with open(args.out, "w", encoding="utf-8") as f:
         f.write("\n".join(out_lines).strip() + "\n")
