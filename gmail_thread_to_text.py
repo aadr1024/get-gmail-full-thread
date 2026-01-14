@@ -107,7 +107,7 @@ def main():
     ap.add_argument("--gmail-url", help="Gmail web URL; script will extract the last path segment")
     ap.add_argument("--thread-id", help="Gmail thread ID")
     ap.add_argument("--query", help="Gmail search query (uses first match)")
-    ap.add_argument("--max", type=int, default=1, help="Max threads to search (default 1)")
+    ap.add_argument("--max", type=int, default=200, help="Max threads to search (default 200, Gmail API limit 500)")
     ap.add_argument("--out", default="thread.txt", help="Output file")
     ap.add_argument("--include-html-fallback", action="store_true", help="Fallback to text from HTML when text/plain missing")
     ap.add_argument("--all-threads", action="store_true", help="Dump up to --max threads for a query (combined output)")

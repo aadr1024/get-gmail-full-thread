@@ -26,10 +26,12 @@ Options:
 - --thread-id <id>
 - --include-html-fallback (if no text/plain part)
 - --all-threads (dump up to --max threads for a query into one file)
+- --max <N> (default 200; Gmail API limit 500)
 
 Notes:
 - First run opens a browser to authenticate; token.json saved.
 - Output is plain text with message separators.
+- A single thread returns all messages; --max only caps number of threads returned for a query.
 - If you get "Invalid message id", use --query with subject/from or use Gmail "Show original" and pass:
   --query "rfc822msgid:<Message-ID>"
 - If you used a subject/from query and got only one message but expect more, add:
