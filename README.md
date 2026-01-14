@@ -37,6 +37,10 @@ Notes:
 - If you used a subject/from query and got only one message but expect more, add:
   --all-threads --max 10
 
+Clipboard trim helper (macOS) to remove line breaks/spaces in Message-ID:
+  pbpaste | tr -d ' \n\r' | pbcopy
+Then paste the cleaned Message-ID into the command.
+
 Security:
 - credentials.json and token.json are gitignored.
 
